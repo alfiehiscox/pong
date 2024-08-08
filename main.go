@@ -42,6 +42,10 @@ func (b *Bat) Update(keyState []uint8) {
 	}
 }
 
+func (b *Bat) AIUpdate(ball *Ball) {
+	b.y = ball.y
+}
+
 type Ball struct {
 	Pos
 	r      float64
@@ -59,7 +63,7 @@ func (b *Ball) Draw(pixels []byte) {
 	}
 }
 
-func (b *Ball) Update() {
+func (b *Ball) Update(left, right *Bat) {
 	b.x += b.xv
 	b.y += b.yv
 
@@ -67,8 +71,23 @@ func (b *Ball) Update() {
 		b.yv = -b.yv
 	}
 
-	// TOOD: Collisions
+	// TODO : Score
+	if b.x-b.r < 0 || b.x+b.r > WIDTH {
+		b.x = WIDTH / 2
+		b.y = HEIGHT / 2
+	}
 
+	if b.x < left.x+left.w/2 {
+		if b.y > left.y-left.h/2 && b.y < left.y+left.h/2 {
+			b.xv = -b.xv
+		}
+	}
+
+	if b.x > right.x-right.w/2 {
+		if b.y > right.y-right.h/2 && b.y < right.y+right.h/2 {
+			b.xv = -b.xv
+		}
+	}
 }
 
 func clearPixels(pixels []byte) {
@@ -113,7 +132,8 @@ func main() {
 	pixels := make([]byte, WIDTH*HEIGHT*4)
 	keyState := sdl.GetKeyboardState()
 
-	bat1 := Bat{Pos{40, 140}, 30, 80, sdl.Color{R: 255, G: 255, B: 255, A: 0}, 10, 10}
+	bat1 := Bat{Pos{0 + 40, 140}, 30, 80, sdl.Color{R: 255, G: 255, B: 255, A: 0}, 10, 10}
+	bat2 := Bat{Pos{WIDTH - 40, 140}, 30, 80, sdl.Color{R: 255, G: 255, B: 255, A: 0}, 10, 10}
 	ball := Ball{Pos{180, 180}, 20, sdl.Color{R: 255, G: 255, B: 255, A: 0}, 10, 10}
 
 	for {
@@ -128,9 +148,11 @@ func main() {
 		clearPixels(pixels)
 
 		bat1.Update(keyState)
-		ball.Update()
+		bat2.AIUpdate(&ball)
+		ball.Update(&bat1, &bat2)
 
 		bat1.Draw(pixels)
+		bat2.Draw(pixels)
 		ball.Draw(pixels)
 
 		texture.Update(nil, unsafe.Pointer(&pixels[0]), WIDTH*4)
